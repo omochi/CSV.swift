@@ -184,7 +184,12 @@ extension CSVWriter {
 
         var quoted = quoted
         if !quoted {
-            if value.contains("\"") || value.contains(configuration.delimiter) || value.contains("\r") || value.contains("\n") {
+            if value.contains("\"") ||
+                value.contains(configuration.delimiter) ||
+                value.contains("\n") ||
+                value.contains("\r\n") ||
+                value.contains("\r")
+            {
                 quoted = true
             }
         }
