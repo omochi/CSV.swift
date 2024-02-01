@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import RegexBuilder
 
 public class CSVWriter {
 
@@ -42,14 +43,18 @@ public class CSVWriter {
     fileprivate var isFirstRow: Bool = true
     fileprivate var isFirstField: Bool = true
 
+    private let quoteRegex: Regex<(Substring)>
+
     fileprivate init(
         stream: OutputStream,
         configuration: Configuration,
-        writeScalar: @escaping ((UnicodeScalar) throws -> Void)) throws {
+        writeScalar: @escaping ((UnicodeScalar) throws -> Void)
+    ) throws {
 
         self.stream = stream
         self.configuration = configuration
         self.writeScalar = writeScalar
+        self.quoteRegex = Self.buildQuoteRegex(delimiter: configuration.delimiter)
 
         if stream.streamStatus == .notOpen {
             stream.open()
@@ -63,6 +68,20 @@ public class CSVWriter {
         if stream.streamStatus == .open {
             stream.close()
         }
+    }
+
+    private static func buildQuoteRegex(delimiter: String) -> Regex<(Substring)> {
+        Regex {
+            ChoiceOf {
+                CharacterClass.anyOf([
+                    Character("\""),
+                    Character("\n"),
+                    Character("\r")
+                ])
+
+                delimiter
+            }
+        }.matchingSemantics(.unicodeScalar)
     }
 
 }
@@ -184,12 +203,7 @@ extension CSVWriter {
 
         var quoted = quoted
         if !quoted {
-            if value.contains("\"") ||
-                value.contains(configuration.delimiter) ||
-                value.contains("\n") ||
-                value.contains("\r\n") ||
-                value.contains("\r")
-            {
+            if let _ = value.firstMatch(of: quoteRegex) {
                 quoted = true
             }
         }
